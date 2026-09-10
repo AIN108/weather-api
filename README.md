@@ -74,3 +74,4 @@ AIN108이 작성한 이 저장소의 소스 코드는 MIT License로 배포합�
 ## 개발자
 
 - GitHub: [@AIN108](https://github.com/AIN108)
+- Notion 프로젝트: https://app.notion.com/p/2c5f6964be618018888bd5c391ebd558
