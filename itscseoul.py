@@ -8,7 +8,7 @@ import schedule
 import RPi.GPIO as GPIO
 
 
-GPIO.cleanup()
+GPIO.setwarnings(False)
 
 time_pins = [17, 27, 22, 5]
 weather_pins = [6, 13, 19, 26]
@@ -58,10 +58,18 @@ def interpret_sky_and_pty(sky, pty):
     return "알 수 없음"
 
 
+def latest_base_datetime(now):
+    """초단기예보는 매시 30분 발표, 약 45분 이후 제공되므로 그 기준으로 발표시각을 고른다."""
+    available = now - timedelta(minutes=45)
+    if available.minute < 30:
+        available -= timedelta(hours=1)
+    base = available.replace(minute=30, second=0, microsecond=0)
+    return base.strftime("%Y%m%d"), base.strftime("%H%M")
+
+
 def get_weather():
     now = datetime.now()
-    base_date = now.strftime("%Y%m%d")
-    base_time = (now - timedelta(minutes=40)).strftime("%H%M")
+    base_date, base_time = latest_base_datetime(now)
 
     params = {
         "serviceKey": service_key,
@@ -77,6 +85,11 @@ def get_weather():
     response = requests.get(url, params=params, timeout=15)
     response.raise_for_status()
     root = ET.fromstring(response.content)
+    result_code = root.findtext(".//header/resultCode")
+    if result_code != "00":
+        raise ValueError(
+            f"기상청 API 오류: {result_code} {root.findtext('.//header/resultMsg')}"
+        )
 
     temperature = None
     humidity = None
@@ -85,22 +98,29 @@ def get_weather():
     precipitation = None
     snowfall = None
 
-    for item in root.findall(".//item"):
-        category_node = item.find("category")
-        value_node = item.find("fcstValue")
-        if category_node is None or value_node is None:
-            continue
+    # 카테고리마다 6시간치 예보가 오므로 가장 가까운 예보 시각만 사용한다.
+    items = root.findall(".//item")
+    fcst_slots = sorted(
+        {(item.findtext("fcstDate"), item.findtext("fcstTime")) for item in items}
+        - {(None, None)}
+    )
+    nearest_slot = fcst_slots[0] if fcst_slots else None
 
-        category = category_node.text
-        value = value_node.text
+    for item in items:
+        if (item.findtext("fcstDate"), item.findtext("fcstTime")) != nearest_slot:
+            continue
+        category = item.findtext("category")
+        value = item.findtext("fcstValue")
+        if category is None or value is None:
+            continue
 
         if category == "T1H":
             temperature = value
         elif category == "REH":
             humidity = value
-        elif category == "SKY" and value is not None:
+        elif category == "SKY" and value.strip().isdigit():
             sky_value = int(value)
-        elif category == "PTY" and value is not None:
+        elif category == "PTY" and value.strip().isdigit():
             pty_value = int(value)
         elif category == "RN1":
             precipitation = value
@@ -147,6 +167,14 @@ def get_weather():
         print("데이터 전송 중 오류 발생:", exc)
 
 
+def safe_get_weather():
+    """네트워크/응답 오류로 스케줄 루프가 종료되지 않도록 예외를 기록만 하고 넘긴다."""
+    try:
+        get_weather()
+    except (requests.RequestException, ET.ParseError, ValueError) as exc:
+        print("날씨 조회 실패:", exc)
+
+
 def check_time_signal():
     current_hour = datetime.now().hour
 
@@ -164,10 +192,11 @@ def check_time_signal():
 
 
 try:
-    get_weather()
+    safe_get_weather()
     check_time_signal()
-    schedule.every(1).minutes.do(get_weather)
-    schedule.every(6).hours.do(check_time_signal)
+    schedule.every(1).minutes.do(safe_get_weather)
+    # 0/6/12/18시 경계에 맞춰 바뀌도록 매분 확인한다(GPIO 출력만 하므로 부담 없음).
+    schedule.every(1).minutes.do(check_time_signal)
 
     while True:
         schedule.run_pending()

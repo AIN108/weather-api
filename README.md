@@ -42,7 +42,7 @@ export WEATHER_SERVER_URL='http://127.0.0.1:5000/update_weather_data'
 스크립트별로 필요한 패키지가 다릅니다. 대표적으로 다음 패키지를 사용합니다.
 
 ```bash
-pip install requests beautifulsoup4 lxml xmltodict schedule
+pip install -r requirements.txt
 ```
 
 Raspberry Pi에서는 `RPi.GPIO` 설치/지원 여부를 사용 중인 Raspberry Pi OS 환경에 맞게 확인해야 합니다.
