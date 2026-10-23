@@ -35,8 +35,6 @@ $env:KMA_SERVICE_KEY='YOUR_NEW_SERVICE_KEY'
 export WEATHER_SERVER_URL='http://127.0.0.1:5000/update_weather_data'
 ```
 
-> 보안 주의: 과거 커밋에는 API 키가 하드코딩된 이력이 있습니다. Git 히스토리에서 문자열을 지우는 것만으로 이미 노출된 키가 안전해지는 것은 아니므로, 기존 키는 폐기/재발급하는 것이 필요합니다.
-
 ## 주요 의존성
 
 스크립트별로 필요한 패키지가 다릅니다. 대표적으로 다음 패키지를 사용합니다.
