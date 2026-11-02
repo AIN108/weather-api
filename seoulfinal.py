@@ -28,7 +28,11 @@ def get_weather_data():
     response = requests.get(url, params=params, timeout=15)
     response.raise_for_status()
     data = xmltodict.parse(response.content)
-    return data["response"]["body"]["items"]["item"]
+    header = data.get("response", {}).get("header", {})
+    if header.get("resultCode") != "00":
+        raise ValueError(f"기상청 API 오류: {header.get('resultCode')} {header.get('resultMsg')}")
+    item = data["response"]["body"]["items"]["item"]
+    return item[0] if isinstance(item, list) else item
 
 
 GPIO.setwarnings(False)
@@ -37,7 +41,12 @@ GPIO.setup([7, 8, 11, 12], GPIO.OUT, initial=GPIO.LOW)
 
 try:
     while True:
-        item = get_weather_data()
+        try:
+            item = get_weather_data()
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            print("날씨 조회 실패:", exc)
+            time.sleep(60)
+            continue
 
         skystate = item["wfCd"]
         rain = item["rnYn"]
@@ -53,7 +62,8 @@ try:
         GPIO.output(12, GPIO.LOW if rain == "0" else GPIO.HIGH)
 
         print(f"Sky State: {skystate}, Rain: {rain}")
-        time.sleep(10)
+        # 육상예보는 하루 3회 발표되므로 10분 간격이면 충분하다(일일 호출 한도 보호).
+        time.sleep(600)
 
 except KeyboardInterrupt:
     print("프로그램이 중단되었습니다.")

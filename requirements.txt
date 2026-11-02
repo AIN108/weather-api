@@ -1,0 +1,7 @@
+requests>=2.25,<3
+schedule>=1.1,<2
+xmltodict>=0.12,<1
+beautifulsoup4>=4.9,<5
+lxml>=4.6
+# Raspberry Pi 전용 (Raspberry Pi OS에서는 apt의 python3-rpi.gpio로 대체 가능)
+RPi.GPIO>=0.7; platform_machine == "armv7l" or platform_machine == "aarch64"
