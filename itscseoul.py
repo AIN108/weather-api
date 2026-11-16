@@ -94,15 +94,19 @@ def get_weather():
     precipitation = None
     snowfall = None
 
+    # 초단기예보는 같은 항목을 예보 시각(fcstDate·fcstTime)별로 여러 개 돌려준다.
+    # 응답 순서에 기대지 않고 항목마다 가장 이른 예보 시각의 값(지금에 가장 가까운 값)을 쓴다.
+    earliest = {}
     for item in root.findall(".//item"):
         category_node = item.find("category")
         value_node = item.find("fcstValue")
         if category_node is None or value_node is None:
             continue
+        when = (item.findtext("fcstDate") or "", item.findtext("fcstTime") or "")
+        if category_node.text not in earliest or when < earliest[category_node.text][0]:
+            earliest[category_node.text] = (when, value_node.text)
 
-        category = category_node.text
-        value = value_node.text
-
+    for category, (_, value) in earliest.items():
         if category == "T1H":
             temperature = value
         elif category == "REH":
