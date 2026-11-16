@@ -60,8 +60,10 @@ def interpret_sky_and_pty(sky, pty):
 
 def get_weather():
     now = datetime.now()
-    base_date = now.strftime("%Y%m%d")
-    base_time = (now - timedelta(minutes=40)).strftime("%H%M")
+    # 날짜와 시각을 같은 기준 시각에서 뽑아야 자정 직후(00:00~00:39)에 전날 23시대를 요청한다.
+    base = now - timedelta(minutes=40)
+    base_date = base.strftime("%Y%m%d")
+    base_time = base.strftime("%H%M")
 
     params = {
         "serviceKey": service_key,
