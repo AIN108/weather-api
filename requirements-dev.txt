@@ -1,0 +1,5 @@
+# 테스트용 의존성. RPi.GPIO는 Raspberry Pi에서만 설치되므로 테스트에서는 스텁으로 대체한다.
+requests>=2.31,<3
+schedule>=1.2,<2
+xmltodict>=0.13,<2
+pytest>=8,<10
