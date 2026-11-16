@@ -188,7 +188,8 @@ try:
     safe_get_weather()
     check_time_signal()
     schedule.every(1).minutes.do(safe_get_weather)
-    schedule.every(6).hours.do(check_time_signal)
+    # 6시간 주기는 시작 시각 기준이라 0·6·12·18시 경계에서 최대 6시간 늦게 바뀐다. 매분 확인한다(GPIO 출력만 함).
+    schedule.every(1).minutes.do(check_time_signal)
 
     while True:
         schedule.run_pending()

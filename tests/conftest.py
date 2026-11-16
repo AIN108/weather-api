@@ -85,16 +85,22 @@ def run_script(monkeypatch):
         monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResponse(b"{}"))
 
         jobs = []
+        record["schedule"] = []  # (간격, 단위, 함수 이름) — 예: (1, "minutes", "safe_get_weather")
 
         class Job:
-            def __getattr__(self, _):
+            def __init__(self, interval=1):
+                self.interval, self.unit = interval, None
+
+            def __getattr__(self, name):
+                self.unit = name
                 return self
 
             def do(self, fn):
                 jobs.append(fn)
+                record["schedule"].append((self.interval, self.unit, fn.__name__))
 
         schedule = types.ModuleType("schedule")
-        schedule.every = lambda *a, **k: Job()
+        schedule.every = lambda interval=1: Job(interval)
         state = {"ticks": 0}
 
         def run_pending():
