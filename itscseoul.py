@@ -80,6 +80,13 @@ def get_weather():
     response.raise_for_status()
     root = ET.fromstring(response.content)
 
+    # 오류 응답(키 오류·트래픽 초과·NO_DATA 등)이면 LED와 서버 데이터를 바꾸지 않고 다음 주기를 기다린다.
+    result_code = root.findtext(".//resultCode")
+    if root.tag == "OpenAPI_ServiceResponse" or (result_code is not None and result_code != "00"):
+        message = root.findtext(".//resultMsg") or root.findtext(".//returnAuthMsg") or "알 수 없는 오류"
+        print(f"기상청 API 오류 응답 (resultCode={result_code}): {message}")
+        return
+
     temperature = None
     humidity = None
     sky_value = None

@@ -29,7 +29,16 @@ def get_weather_data():
     response = requests.get(url, params=params, timeout=15)
     response.raise_for_status()
     data = xmltodict.parse(response.content)
+    header = (data.get("response") or {}).get("header") or {}
+    result_code = header.get("resultCode")
+    if result_code is not None and result_code != "00":
+        # 오류 응답(트래픽 초과·NO_DATA 등)은 본문이 없거나 비어 있다. 원인 코드를 그대로 보여 준다.
+        raise KmaApiError(f"resultCode={result_code}: {header.get('resultMsg')}")
     return data["response"]["body"]["items"]["item"]
+
+
+class KmaApiError(Exception):
+    """기상청 API가 정상(00)이 아닌 resultCode를 돌려준 경우."""
 
 
 GPIO.setwarnings(False)
@@ -42,7 +51,7 @@ try:
             item = get_weather_data()
             skystate = item["wfCd"]
             rain = item["rnYn"]
-        except (requests.RequestException, ExpatError, KeyError, TypeError) as exc:
+        except (requests.RequestException, ExpatError, KeyError, TypeError, KmaApiError) as exc:
             # 네트워크 오류·오류 응답(body 없음) 한 번으로 종료하지 않고 LED 상태를 유지한 채 재시도한다.
             print("날씨 조회 실패, 10초 후 다시 시도합니다:", exc)
             time.sleep(10)
