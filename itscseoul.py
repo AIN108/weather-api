@@ -163,10 +163,18 @@ def check_time_signal():
     GPIO.output(time_pins[time_signal - 1], GPIO.HIGH)
 
 
+def safe_get_weather():
+    """네트워크·응답 오류 한 번으로 상시 구동 루프가 종료되지 않도록 기록 후 다음 주기에 재시도한다."""
+    try:
+        get_weather()
+    except (requests.RequestException, ET.ParseError, ValueError) as exc:
+        print("날씨 조회 실패, 다음 주기에 다시 시도합니다:", exc)
+
+
 try:
-    get_weather()
+    safe_get_weather()
     check_time_signal()
-    schedule.every(1).minutes.do(get_weather)
+    schedule.every(1).minutes.do(safe_get_weather)
     schedule.every(6).hours.do(check_time_signal)
 
     while True:

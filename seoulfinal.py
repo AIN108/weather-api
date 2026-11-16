@@ -1,5 +1,6 @@
 import os
 import time
+from xml.parsers.expat import ExpatError
 
 import requests
 import RPi.GPIO as GPIO
@@ -37,10 +38,15 @@ GPIO.setup([7, 8, 11, 12], GPIO.OUT, initial=GPIO.LOW)
 
 try:
     while True:
-        item = get_weather_data()
-
-        skystate = item["wfCd"]
-        rain = item["rnYn"]
+        try:
+            item = get_weather_data()
+            skystate = item["wfCd"]
+            rain = item["rnYn"]
+        except (requests.RequestException, ExpatError, KeyError, TypeError) as exc:
+            # 네트워크 오류·오류 응답(body 없음) 한 번으로 종료하지 않고 LED 상태를 유지한 채 재시도한다.
+            print("날씨 조회 실패, 10초 후 다시 시도합니다:", exc)
+            time.sleep(10)
+            continue
 
         GPIO.output([7, 8, 11], GPIO.LOW)
         if skystate == "DB01":
