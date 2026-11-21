@@ -9,11 +9,14 @@ WEATHER_PINS = [6, 13, 19, 26]
 
 
 @pytest.mark.parametrize("now,expected", [
-    (datetime.datetime(2026, 11, 16, 0, 10), ("20261115", "2330")),   # 자정 직후: 전날로 넘어감
-    (datetime.datetime(2026, 11, 16, 0, 39), ("20261115", "2359")),
-    (datetime.datetime(2026, 11, 16, 0, 40), ("20261116", "0000")),
-    (datetime.datetime(2026, 11, 16, 14, 17), ("20261116", "1337")),
-    (datetime.datetime(2026, 1, 1, 0, 5), ("20251231", "2325")),      # 연도가 바뀌는 경우
+    # 초단기예보: 매시 30분 발표, 45분 뒤 조회 가능 → (now - 45분) 이전의 가장 최근 HH30
+    (datetime.datetime(2026, 11, 16, 0, 10), ("20261115", "2230")),   # 자정 직후: 전날 발표분
+    (datetime.datetime(2026, 11, 16, 0, 14), ("20261115", "2230")),
+    (datetime.datetime(2026, 11, 16, 0, 15), ("20261115", "2330")),   # 23:30 발표분이 조회 가능해지는 시각
+    (datetime.datetime(2026, 11, 16, 1, 14), ("20261115", "2330")),
+    (datetime.datetime(2026, 11, 16, 1, 15), ("20261116", "0030")),
+    (datetime.datetime(2026, 11, 16, 14, 17), ("20261116", "1330")),
+    (datetime.datetime(2026, 1, 1, 0, 5), ("20251231", "2230")),      # 연도가 바뀌는 경우
 ])
 def test_itscseoul_base_date_and_time(run_script, now, expected):
     namespace, record = run_script("itscseoul.py", [FakeResponse(ULTRA_OK)], ticks=0)

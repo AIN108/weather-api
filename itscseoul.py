@@ -58,12 +58,23 @@ def interpret_sky_and_pty(sky, pty):
     return "알 수 없음"
 
 
+def latest_base_datetime(now):
+    """조회 가능한 가장 최근 초단기예보 발표 시각(base_date, base_time)을 돌려준다.
+
+    초단기예보는 매시 30분에 발표되고 약 45분 뒤부터 조회된다고 보고, (now - 45분) 이전의
+    가장 최근 HH30을 고른다. 날짜도 같은 시각에서 뽑으므로 자정 직후에는 전날 발표분이 된다.
+    (이 규칙은 공식 활용가이드로 확인하지 못했다. PR 본문 참고)
+    """
+    available = now - timedelta(minutes=45)
+    if available.minute < 30:
+        available -= timedelta(hours=1)
+    base = available.replace(minute=30, second=0, microsecond=0)
+    return base.strftime("%Y%m%d"), base.strftime("%H%M")
+
+
 def get_weather():
     now = datetime.now()
-    # 날짜와 시각을 같은 기준 시각에서 뽑아야 자정 직후(00:00~00:39)에 전날 23시대를 요청한다.
-    base = now - timedelta(minutes=40)
-    base_date = base.strftime("%Y%m%d")
-    base_time = base.strftime("%H%M")
+    base_date, base_time = latest_base_datetime(now)
 
     params = {
         "serviceKey": service_key,
